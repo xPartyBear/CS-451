@@ -3,7 +3,7 @@
 #include <string.h>
 
 struct node {
-    char *pid;
+    int pid;
     struct node *next;
     int *children;
 };
@@ -12,19 +12,21 @@ struct node *front = NULL;
 struct node *temp = NULL;
 struct node *rear = NULL;
 
-void enqueue(char*);
+void enqueue(int);
 
 struct node *dequeue();
 
-int* getChildren(char *pid){
+int* getChildren(int pid){
     FILE *children_file = NULL;
     FILE *children_file2 = NULL;
     char path[100];
     char *path2;
+    char pid_str[100];
+    sprintf(pid_str, "%d", pid);
     strcpy(path, "/proc/");
-    strcat(path, pid);
+    strcat(path, pid_str);
     strcat(path, "/task/");
-    strcat(path, pid);
+    strcat(path, pid_str);
     strcat(path, "/children");
 //    if(strcmp(pid, "1") == 0){
 //        path2 = "C:\\Users\\Yosgs\\Desktop\\children.txt";
@@ -38,7 +40,6 @@ int* getChildren(char *pid){
     children_file = fopen(path, "r");
     children_file2 = fopen(path, "r");
     if (children_file == NULL){
-        perror("Opps");
         return NULL;
     }
     else{
@@ -89,11 +90,9 @@ void display(struct node *n){
     if (n->children[0] == 0){
         return;
     }
-    printf("Children of %s:", n->pid);
+    printf("Children of %d:", n->pid);
     for (int i = 1; i < n->children[0] + 1; i++) {
-        char child_pid[100];
-        sprintf(child_pid,"%d", n->children[i]);
-        enqueue(child_pid);
+        enqueue(n->children[i]);
         printf(" %d", n->children[i]);
     }
     printf("\n");
@@ -105,7 +104,7 @@ int main(int argc, char *argv[]) {
     }
     else {
         if(pidCheck(argv[1]) == 1) {
-            enqueue((char *) argv[1]);
+            enqueue(atoi(argv[1]));
             struct node *n;
             while (front != NULL) {
                 n = front;
@@ -119,7 +118,7 @@ int main(int argc, char *argv[]) {
     }
 }
 
-void enqueue(char* pid) {
+void enqueue(int pid) {
     struct node *nptr = malloc(sizeof(struct node));
     nptr->pid = pid;
     int* children;
@@ -141,6 +140,6 @@ struct node *dequeue() {
     } else {
         temp = front;
         front = front->next;
-        return(temp);
+        return temp;
     }
 }
