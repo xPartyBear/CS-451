@@ -20,12 +20,11 @@ struct node {
 };
 
 struct node *front = NULL;
-struct node *temp = NULL;
 struct node *rear = NULL;
 
 void enqueue(int);
 
-struct node *dequeue();
+void dequeue();
 
 
 /*
@@ -36,43 +35,54 @@ Brief description of the task:
 Goto the children file of the input pid and return the children that are in the file
 */
 int* getChildren(int pid){
-
+    //File Streams for the children file
     FILE *children_file = NULL;
     FILE *children_file2 = NULL;
 
+    //path and pid strings for generating the path to the children file
     char path[100];
     char pid_str[100];
     sprintf(pid_str, "%d", pid);
 
+    //generate the path to the children file
     strcpy(path, "/proc/");
     strcat(path, pid_str);
     strcat(path, "/task/");
     strcat(path, pid_str);
     strcat(path, "/children");
 
+    //read the children file
     children_file = fopen(path, "r");
     children_file2 = fopen(path, "r");
-    if (children_file == NULL){
+    if (children_file == NULL){ //if the file is empty return NULL
         return NULL;
     }
     else{
+        //line buffers for storing the data in the children file
         char line_buff[1000];
         memset(line_buff, 0, sizeof line_buff);
         char line_buff2[1000];
         memset(line_buff2, 0, sizeof line_buff2);
+
+        //get the children from the children file and close the file
         fgets(line_buff, 1000, children_file);
         fgets(line_buff2, 1000, children_file2);
         fclose(children_file);
-        char *tokens = strtok(line_buff, " ");
-        int i = 1;
-        int length = 0;
+
+        char *tokens = strtok(line_buff, " ");//get the children based on the spaces between them
+        int i = 1;//starting index of children array
+        int length = 0;//starting length of children array
+        //get the number of children in the children file
+        //which is the length of the children array
         while (tokens != NULL){
             length++;
             tokens = strtok(NULL, " ");
         }
-        int* children = calloc(length+1, sizeof(int));
-        char *tokens2 = strtok(line_buff2, " ");
-        children[0] = length;
+
+        int* children = calloc(length+1, sizeof(int));//allocate length+1 to the children array for storing ints
+        char *tokens2 = strtok(line_buff2, " ");//get the children based on the spaces between them
+        children[0] = length;//set the first index of array to the length of the array
+        //put the children into the array
         while (tokens2 != NULL){
             children[i] = atoi(tokens2);
             i++;
@@ -92,10 +102,13 @@ Brief description of the task:
 Check whether the pid exists or not
 */
 int pidCheck(char* pid){
+    //generate the path to the pid
     char path[80];
     sprintf(path, "/proc/%s", pid);
     FILE *file;
 
+    //check if the pid folder exists
+    //if it does return 1, if not return 0
     if (file = fopen(path, "r"))
     {
         fclose(file);
@@ -116,20 +129,16 @@ Brief description of the task:
 Display the children of the pid from the node
 */
 void display(struct node *n){
-    int PID_EXISTS = 1;
-    int NUM_OF_CHILDREN = 0;
-    if (n->children[NUM_OF_CHILDREN] == 0){
-        return;
-    }
-    printf("Children of %d:", n->pid);
-    for (int i = 1; i < n->children[NUM_OF_CHILDREN] + 1; i++) {
+    printf("Children of %d:", n->pid);//print pid of node n
+    //go through the children in node n
+    for (int i = 1; i < n->children[0] + 1; i++) {
         char child_pid[100];
-        sprintf(child_pid, "%d", n->children[i]);
-        if(pidCheck(child_pid) == PID_EXISTS){
+        sprintf(child_pid, "%d", n->children[i]);//int to char
+        if(pidCheck(child_pid) == 1){//if the childs pid exists put it in the queue
             enqueue(n->children[i]);
         }
-        sprintf(child_pid, "%s", "");
-        printf(" %d", n->children[i]);
+        sprintf(child_pid, "%s", "");//reset child_pid variable
+        printf(" %d", n->children[i]);//print the children
     }
     printf("\n");
 }
@@ -143,20 +152,16 @@ Brief description of the task:
 Take the pid argument from the command line and use it to find its children
 */
 int main(int argc, char *argv[]) {
-    int MAX_COUNT = 2;
-    int PID_ARG = 1;
-    int PID_EXISTS = 1;
-    if(argc > MAX_COUNT || argc < MAX_COUNT){
+    //check if the number of args is 2
+    if(argc > 2 || argc < 2){
         printf("The command takes one argument of a pid.\n");
     }
     else {
-        if(pidCheck(argv[PID_ARG]) == PID_EXISTS) {
-            enqueue(atoi(argv[PID_ARG]));
-            struct node *n;
+        if(pidCheck(argv[1]) == 1) {//check if pid exists
+            enqueue(atoi(argv[1]));//put pid and children into queue
             while (front != NULL) {
-                n = front;
-                display(n);
-                dequeue();
+                display(front);//display the pid and its children
+                dequeue();//remove front from queue
             }
         }
         else{
@@ -175,11 +180,11 @@ put the pid and children into a queue
 */
 void enqueue(int pid) {
     struct node *nptr = malloc(sizeof(struct node));
-    nptr->pid = pid;
-    int* children;
-    children = getChildren(pid);
-    nptr->children = children;
-    nptr->next = NULL;
+    nptr->pid = pid;//put the pid into the node nptr
+    nptr->children = getChildren(pid);//put the children int array into the node nptr
+    nptr->next = NULL;//next is NULL
+    //if the rear is NULL set the front and rear to node nptr
+    //otherwise rear is the next of nptr
     if (rear == NULL) {
         front = nptr;
         rear = nptr;
@@ -193,16 +198,16 @@ void enqueue(int pid) {
 /*
 Function Name: dequeue
 Input to the method: None
-Output(Return value): current node at the front of the queue
+Output(Return value): None
 Brief description of the task:
-get the current front node, and move the next node to the front
+move the next node to the front
 */
-struct node *dequeue() {
+void dequeue() {
+    //if the front is NULL do nothing
+    //else make front next node
     if (front == NULL) {
-        return NULL;
+        return;
     } else {
-        temp = front;
         front = front->next;
-        return temp;
     }
 }
