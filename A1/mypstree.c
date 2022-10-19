@@ -1,3 +1,14 @@
+/*
+Author: Michael Dekoski & Evan Tarnowski
+Assignment Number: 1
+Date of Submission: 10-19-2022
+Name of this file: mypstree.c
+Short description of contents:
+Takes input argument of a pid, gets the children of this pid
+and if there are children of the children gets those, until no children remain
+*/
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,27 +27,29 @@ void enqueue(int);
 
 struct node *dequeue();
 
+
+/*
+Function Name: getChildren
+Input to the method: pid as an integer
+Output(Return value): an integer array of the children of the input
+Brief description of the task:
+Goto the children file of the input pid and return the children that are in the file
+*/
 int* getChildren(int pid){
+
     FILE *children_file = NULL;
     FILE *children_file2 = NULL;
+
     char path[100];
-    char *path2;
     char pid_str[100];
     sprintf(pid_str, "%d", pid);
+
     strcpy(path, "/proc/");
     strcat(path, pid_str);
     strcat(path, "/task/");
     strcat(path, pid_str);
     strcat(path, "/children");
-//    if(strcmp(pid, "1") == 0){
-//        path2 = "C:\\Users\\Yosgs\\Desktop\\children.txt";
-//    }
-//    else if(strcmp(pid, "1309") == 0){
-//        path2 = "C:\\Users\\Yosgs\\Desktop\\children2.txt";
-//    }
-//    else{
-//        path2 = "C:\\Users\\Yosgs\\Desktop\\children3.txt";
-//    }
+
     children_file = fopen(path, "r");
     children_file2 = fopen(path, "r");
     if (children_file == NULL){
@@ -70,6 +83,14 @@ int* getChildren(int pid){
     }
 }
 
+
+/*
+Function Name: pidCheck
+Input to the method: character pointer called pid
+Output(Return value): Either 1 or 0, 1 if pid exists 0 if pid does not exist
+Brief description of the task:
+Check whether the pid exists or not
+*/
 int pidCheck(char* pid){
     char path[80];
     sprintf(path, "/proc/%s", pid);
@@ -86,25 +107,51 @@ int pidCheck(char* pid){
     }
 }
 
+
+/*
+Function Name: display
+Input to the method: A node pointer
+Output(Return value): None
+Brief description of the task:
+Display the children of the pid from the node
+*/
 void display(struct node *n){
-    if (n->children[0] == 0){
+    int PID_EXISTS = 1;
+    int NUM_OF_CHILDREN = 0;
+    if (n->children[NUM_OF_CHILDREN] == 0){
         return;
     }
     printf("Children of %d:", n->pid);
-    for (int i = 1; i < n->children[0] + 1; i++) {
-        enqueue(n->children[i]);
+    for (int i = 1; i < n->children[NUM_OF_CHILDREN] + 1; i++) {
+        char child_pid[100];
+        sprintf(child_pid, "%d", n->children[i]);
+        if(pidCheck(child_pid) == PID_EXISTS){
+            enqueue(n->children[i]);
+        }
+        sprintf(child_pid, "%s", "");
         printf(" %d", n->children[i]);
     }
     printf("\n");
 }
 
+
+/*
+Function Name: main
+Input to the method: Number of arguments(argc) and arguments(argv)
+Output(Return value): None
+Brief description of the task:
+Take the pid argument from the command line and use it to find its children
+*/
 int main(int argc, char *argv[]) {
-    if(argc > 2 || argc < 2){
+    int MAX_COUNT = 2;
+    int PID_ARG = 1;
+    int PID_EXISTS = 1;
+    if(argc > MAX_COUNT || argc < MAX_COUNT){
         printf("The command takes one argument of a pid.\n");
     }
     else {
-        if(pidCheck(argv[1]) == 1) {
-            enqueue(atoi(argv[1]));
+        if(pidCheck(argv[PID_ARG]) == PID_EXISTS) {
+            enqueue(atoi(argv[PID_ARG]));
             struct node *n;
             while (front != NULL) {
                 n = front;
@@ -118,6 +165,14 @@ int main(int argc, char *argv[]) {
     }
 }
 
+
+/*
+Function Name: enqueue
+Input to the method: pid as an integer
+Output(Return value): None
+Brief description of the task:
+put the pid and children into a queue
+*/
 void enqueue(int pid) {
     struct node *nptr = malloc(sizeof(struct node));
     nptr->pid = pid;
@@ -134,6 +189,14 @@ void enqueue(int pid) {
     }
 }
 
+
+/*
+Function Name: dequeue
+Input to the method: None
+Output(Return value): current node at the front of the queue
+Brief description of the task:
+get the current front node, and move the next node to the front
+*/
 struct node *dequeue() {
     if (front == NULL) {
         return NULL;
