@@ -6,3 +6,7 @@ Children of
 ./mypstree 2
 Children of 2:
 Children of
+
+
+./mypstree
+Children of
