@@ -8,6 +8,5 @@ in a round-robin scheduler. The processes are children running the prime functio
 has no more burst time left.
 
 Some issues:
-    Sometimes the CPU will get stuck, and you will have to press any key to unstuck it.(soft lockup)
     When only one process is running, it will suspend and resume it until it is completed.
     The last process goes for an extra time quantum until it is labelled as completed.
