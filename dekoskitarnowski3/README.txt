@@ -5,3 +5,4 @@ To run  ./makingmusic [-nodelay/-randomdelay] [# of vocalists] [# of composers] 
 
 
 Some issues:
+    Sometimes makes it all the way to the end of the program, others it gets held up with all the threads being stuck at "Ready to make music"
