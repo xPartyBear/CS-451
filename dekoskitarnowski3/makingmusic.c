@@ -48,7 +48,7 @@ int main(int argc, char* argv[]){
     sem_init(&vocalist, 0, 0);
     sem_init(&room, 0, 1);
 
-    if(strcmp(argv[1], "-nodelay") != 0){
+    if(strcmp(argv[1], "-nodelay") == 0){
         if(argc < 5 || argc > 5){
             printf("-nodelay takes 3 arguments, vocalists, composers, and soundproof rooms\n");
             exit(1);
@@ -60,10 +60,10 @@ int main(int argc, char* argv[]){
             pthread_t vocalists_thread_id[vocalists];
             pthread_t composers_thread_id[composers];
             for (int i =0; i < composers; i++){
-                pthread_create(&composers_thread_id[i], NULL, composers_task, (void *) i);
+                pthread_create(&composers_thread_id[i], NULL, (void*)&composers_task, (void *)i);
             }
             for (int i =0; i < vocalists; i++) {
-                pthread_create(&vocalists_thread_id[i], NULL, vocalists_task, (void *) i);
+                pthread_create(&vocalists_thread_id[i], NULL, (void*)&vocalists_task, (void *)i);
             }
             while(vocalists != vocalistThreadCount){}
             sem_post(&vocalist);
@@ -77,7 +77,7 @@ int main(int argc, char* argv[]){
             }
         }
     }
-    else if(strcmp(argv[1], "-randomdelay") != 0){
+    else if(strcmp(argv[1], "-randomdelay") == 0){
         if(argc < 7 || argc > 7){
             printf("-randomdelay takes 5 arguments, vocalists, composers, soundproof rooms, maxWanderTime, and maxSoundRoomUsageTime\n");
             exit(1);
@@ -96,13 +96,13 @@ int main(int argc, char* argv[]){
             randRoomUsage = malloc(sizeof(int)*vocalists);
 
             for (int i =0; i < composers; i++) {
-                randComposerWander[i] = rand() % atoi(argv[5]);
-                pthread_create(&composers_thread_id[i], NULL, composers_task, (void *) i);
+                randComposerWander[i] = rand() % (atoi(argv[5])+1);
+                pthread_create(&composers_thread_id[i], NULL, (void*)&composers_task, (void *)i);
             }
             for (int i =0; i < vocalists; i++) {
-                randVocalistWander[i] % atoi(argv[5]);
-                randRoomUsage[i] = rand() % atoi(argv[6]);
-                pthread_create(&vocalists_thread_id[i], NULL, vocalists_task, (void *) i);
+                randVocalistWander[i] % (atoi(argv[5])+1);
+                randRoomUsage[i] = rand() % (atoi(argv[6])+1);
+                pthread_create(&vocalists_thread_id[i], NULL, (void*)&vocalists_task, (void *)i);
             }
             while(vocalists != vocalistThreadCount){}
             sem_post(&vocalist);
@@ -115,6 +115,9 @@ int main(int argc, char* argv[]){
                 pthread_join(composers_thread_id[i], NULL);
             }
         }
+    }
+    else{
+        printf("Unknown command\n");
     }
     return 0;
 }
@@ -136,36 +139,58 @@ void vocalists_task(int threadNum) {
         sleep(randVocalistWander[threadNum]);
         printf("Vocalist %d: I am ready to make music.\n", threadNum);
         currentVocalist = threadNum;
-        sem_post(&vocalist);
-        sem_wait(&composer);
-        sem_wait(&room);
-        if(soundproof>0){
-            soundproof--;
-            sem_wait(&composer);
-            printf("Vocalist %d and Composer %d found a soundproof room and are making music.\n", currentVocalist,
-                   currentComposer);
-            sleep(randRoomUsage[threadNum]);
-            sem_post(&vocalist);
-            sem_post(&room);
-            soundproof++;
+
+        while(1){
+            currentVocalist = threadNum;
+            sem_wait(&room);
+            if(soundproof >= 0){
+                --soundproof;
+                sem_post(&room);
+                sem_post(&composer);
+                sem_wait(&vocalist);
+                sem_wait(&room);
+                printf("Vocalist %d and Composer %d found a soundproof room and are making music.\n", currentVocalist,
+                       currentComposer);
+                sleep(randRoomUsage[threadNum]);
+                soundproof++;
+                sem_post(&room);
+                break;
+            }
+            else{
+                sem_post(&room);
+            }
         }
+
+        printf("Vocalist %d and Composer %d found a soundproof room and are making music.\n", currentVocalist,
+               currentComposer);
+        sleep(randRoomUsage[threadNum]);
+        sem_post(&room);
+        sem_post(&composer);
     }
     else{
         printf("Vocalist %d: I am wandering...\n", threadNum);
         sem_wait(&vocalist);
         printf("Vocalist %d: I am ready to make music.\n", threadNum);
         currentVocalist = threadNum;
-        sem_post(&vocalist);
-        sem_wait(&composer);
-        sem_wait(&room);
-        if (soundproof > 0) {
-            soundproof--;
-            sem_wait(&composer);
-            printf("Vocalist %d and Composer %d found a soundproof room and are making music.\n", currentVocalist,
-                   currentComposer);
-            sem_post(&vocalist);
-            sem_post(&room);
-            soundproof++;
+
+        while(1){
+            currentVocalist = threadNum;
+            sem_wait(&room);
+            if(soundproof >= 0){
+                --soundproof;
+                sem_post(&room);
+                sem_post(&composer);
+                sem_wait(&vocalist);
+                sem_wait(&room);
+                printf("Vocalist %d and Composer %d found a soundproof room and are making music.\n", currentVocalist,
+                       currentComposer);
+                soundproof++;
+                sem_post(&room);
+                break;
+            }
+            else{
+                sem_post(&room);
+            }
         }
     }
 
@@ -191,17 +216,26 @@ void composers_task(int threadNum) {
         sleep(randComposerWander[threadNum]);
         printf("Composer %d: I am ready to make music.\n", threadNum);
         currentComposer = threadNum;
-        sem_post(&composer);
-        sem_wait(&vocalist);
-        sem_wait(&room);
-        if (soundproof > 0) {
-            sem_wait(&vocalist);
+
+        while(1){
+            currentComposer = threadNum;
             sem_wait(&room);
-            soundproof--;
-            sleep(randRoomUsage[currentVocalist]);
-            sem_post(&composer);
-            sem_post(&room);
-            soundproof++;
+            if(soundproof >= 0){
+                --soundproof;
+                sem_post(&room);
+                sem_post(&vocalist);
+                sem_wait(&composer);
+                sem_wait(&room);
+//                printf("Vocalist %d and Composer %d found a soundproof room and are making music.\n", currentVocalist,
+//                       currentComposer);
+                sleep(randRoomUsage[currentVocalist]);
+                soundproof++;
+                sem_post(&room);
+                break;
+            }
+            else{
+                sem_post(&room);
+            }
         }
     }
     else{
@@ -209,16 +243,25 @@ void composers_task(int threadNum) {
         sem_wait(&composer);
         printf("Composer %d: I am ready to make music.\n", threadNum);
         currentComposer = threadNum;
-        sem_post(&composer);
-        sem_wait(&vocalist);
-        sem_wait(&room);
-        if (soundproof > 0) {
-            sem_wait(&vocalist);
+
+        while(1){
+            currentComposer = threadNum;
             sem_wait(&room);
-            soundproof--;
-            sem_post(&composer);
-            sem_post(&room);
-            soundproof++;
+            if(soundproof >= 0){
+                --soundproof;
+                sem_post(&room);
+                sem_post(&vocalist);
+                sem_wait(&composer);
+                sem_wait(&room);
+//                printf("Vocalist %d and Composer %d found a soundproof room and are making music.\n", currentVocalist,
+//                       currentComposer);
+                soundproof++;
+                sem_post(&room);
+                break;
+            }
+            else{
+                sem_post(&room);
+            }
         }
     }
 
