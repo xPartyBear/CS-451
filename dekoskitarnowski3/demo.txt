@@ -16,3 +16,20 @@ Vocalist 0 and Composer 2 found a soundproof room and are making music.
 Vocalist 0: I am leaving... Bye
 
 ./makingmusic -randomdelay 2 3 1 10 15
+Composer 0: I am wandering...
+Composer 1: I am wandering...
+Composer 2: I am wandering...
+Vocalist 0: I am wandering...
+Vocalist 1: I am wandering...
+Composer 0: I am ready to make music.
+Vocalist 0: I am ready to make music.
+Vocalist 1: I am ready to make music.
+Composer 0: I am leaving... Bye
+Vocalist 0 and Composer 0 found a soundproof room and are making music.
+Composer 2: I am ready to make music.
+Composer 1: I am ready to make music.
+Vocalist 0: I am leaving... Bye
+Vocalist 1 and Composer 1 found a soundproof room and are making music.
+Vocalist 1: I am leaving... Bye
+Composer 1: I am leaving... Bye
+Composer 2: I am leaving... Bye
