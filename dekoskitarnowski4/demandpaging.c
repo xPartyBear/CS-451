@@ -11,8 +11,9 @@ Short description of contents:
 #include <stdlib.h>
 
 int pageLength = 1024;//in bytes, this is 1kb
-int pageTable[1000];
+int* pageTable;
 int address[1000];
+int addresses = 0;
 
 int fifo();
 
@@ -41,15 +42,17 @@ int main(int argc, char *argv[]) {
         int addressLength = 0;
         char addressStr[60];
         while (1) {
-            if (fgets(addressStr, 10, addressFile) == NULL)
+            if (fgets(addressStr, 10, addressFile) == NULL)// get logical addresses from file
                 break;
-            for (int p = 0; p < 60; p++) {
+            addresses++;
+            for (int p = 0; p < 60; p++) {// get logical address digits
                 if (addressStr[p] >= 0x30 && addressStr[p] <= 0x39) {
                     intTemp[addressLength] = addressStr[p] - 0x30;
                     addressLength++;
                 }
             }
-            switch (addressLength) {
+
+            switch (addressLength) {// format all logical address to have 5 digits
                 case 5:
                     address[addressInt] =
                             intTemp[0] * 10000 + intTemp[1] * 1000 + intTemp[2] * 100 + intTemp[3] * 10 + intTemp[4];
@@ -69,16 +72,17 @@ int main(int argc, char *argv[]) {
             addressLength = 0;
             addressInt++;
         }
+        pageTable = calloc(addresses, sizeof(int));
 
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < addresses; i++) {// set page table to all -1
             pageTable[i] = -1;
         }
         fclose(addressFile);
 
-        int fifoFaults = 0;
-        int lruFaults = 0;
-        fifoFaults = fifo();
-        lruFaults = lru();
+        int fifoFaults;
+        int lruFaults;
+        fifoFaults = fifo();// run FIFO algorithm
+        lruFaults = lru();// run LRU algorithm
 
         printf("The number of page faults for FIFO was: %d\n", fifoFaults);
         printf("The number of page faults for LRU was: %d\n", lruFaults);
@@ -101,27 +105,27 @@ Brief description of the task:
 int fifo() {
     int faults = 0;
     int RAM[8196];
-    int RAMIndex = 0;
+    int RAMIndex;
     int pageAccessed[8];
     int pageNumber;
     int pageOffset;
     int pageAddedCount = 0;
 
     FILE *FIFOStream;
-    FIFOStream = fopen("FIFO_PhysicalAddresses.txt", "w");
-    for (int i = 0; i < 1000; i++) {
+    FIFOStream = fopen("FIFO_PhysicalAddresses.txt", "w");// file to store FIFO physical addresses
+    for (int i = 0; i < (addresses); i++) {
         pageNumber = address[i] / pageLength;
         pageOffset = address[i] % pageLength;
         RAMIndex = pageAddedCount;
         if (pageTable[pageNumber] == -1) {
             if (pageAddedCount < 8) {//RAM not full
-                for (int k = 0; k < pageAddedCount; k++) {
+                for (int k = 0; k < pageAddedCount; k++) {// most recent page is moved to front of array
                     pageAccessed[k] = pageAccessed[k - 1];
                 }
-                pageAccessed[0] = pageNumber;
-                pageTable[pageNumber] = pageAddedCount;
-                for (int z = 0; z < 1024; z++) {
-                    RAM[(pageTable[pageNumber] * 1024) + z] = 1;
+                pageAccessed[0] = pageNumber;// current page becomes most recent
+                pageTable[pageNumber] = pageAddedCount;//add frame to page table
+                for (int z = 0; z < pageLength; z++) {
+                    RAM[(pageTable[pageNumber] * pageLength) + z] = 1;// fill 1kb of RAM in the frame
                 }
                 pageAddedCount++;
             } else {//RAM Full
@@ -131,12 +135,11 @@ int fifo() {
                     pageAccessed[y] = pageAccessed[y - 1];
                 }
                 pageAccessed[0] = pageNumber;
-                for (int z = 0; z < 1024; z++) {
-                    RAM[(pageTable[pageNumber] * 1024) + z] = 1;
+                for (int z = 0; z < pageLength; z++) {
+                    RAM[(pageTable[pageNumber] * pageLength) + z] = 1;// fill 1kb of RAM in the frame
                 }
-
             }
-            faults++;
+            faults++;// fault happened
         } else {
             for (int a = 0; a < pageAddedCount; a++) {
                 if (pageAccessed[a] == pageNumber) {
@@ -144,14 +147,12 @@ int fifo() {
                     break;
                 }
             }
-
-            for (int b = 0; b < RAMIndex; b++) {
+            for (int b = 0; b < RAMIndex; b++) {// moves pages to left until current page
                 pageAccessed[b] = pageAccessed[b - 1];
             }
-
-            pageAccessed[0] = pageNumber;
+            pageAccessed[0] = pageNumber;// current page becomes most recent
         }
-        fprintf(FIFOStream, "%d\n", pageTable[pageNumber] + pageOffset);
+        fprintf(FIFOStream, "%d\n", pageTable[pageNumber]*pageLength + pageOffset);
     }
     fclose(FIFOStream);
     return faults;
@@ -168,57 +169,54 @@ Brief description of the task:
 int lru() {
     int faults = 0;
     int RAM[8196];
-    int RAMIndex = 0;
+    int RAMIndex;
     int pageAccessed[8];
     int pageNumber;
     int pageOffset;
     int pageAddedCount = 0;
 
     FILE *LRUStream;
-    LRUStream = fopen("LRU_PhysicalAddresses.txt", "w");
-    for (int i = 0; i < 1000; i++) {
+    LRUStream = fopen("LRU_PhysicalAddresses.txt", "w");// file to store LRU physical addresses
+    for (int i = 0; i < (addresses); i++) {
         pageNumber = address[i] / pageLength;
         pageOffset = address[i] % pageLength;
         RAMIndex = pageAddedCount;
         if (pageTable[pageNumber] == -1) {
             if (pageAddedCount < 8) {//RAM not full
-                for (int k = 0; k < pageAddedCount; k++) {
+                for (int k = pageAddedCount; k > 0; k--) {// most recent page is moved to front of array
                     pageAccessed[k] = pageAccessed[k - 1];
                 }
-                pageAccessed[0] = pageNumber;
-                pageTable[pageNumber] = pageAddedCount;
-                for (int z = 0; z < 1024; z++) {
-                    RAM[(pageTable[pageNumber] * 1024) + z] = 1;
+                pageAccessed[0] = pageNumber;// current page becomes most recent
+                pageTable[pageNumber] = pageAddedCount;// add frame to page table
+                for (int z = 0; z < pageLength; z++) {
+                    RAM[(pageTable[pageNumber] * pageLength) + z] = 1;// fill 1kb of RAM in the frame
                 }
                 pageAddedCount++;
             } else {//RAM Full
-                pageTable[pageNumber] = pageTable[pageAccessed[0]];
-                pageTable[pageAccessed[0]] = -1;
+                pageTable[pageNumber] = pageTable[pageAccessed[7]];
+                pageTable[pageAccessed[7]] = -1;
                 for (int y = 8; y > 0; y--) {
                     pageAccessed[y] = pageAccessed[y - 1];
                 }
                 pageAccessed[0] = pageNumber;
-                for (int z = 0; z < 1024; z++) {
-                    RAM[(pageTable[pageNumber] * 1024) + z] = 1;
+                for (int z = 0; z < pageLength; z++) {
+                    RAM[(pageTable[pageNumber] * pageLength) + z] = 1;// fill 1kb of RAM in the frame
                 }
-
             }
-            faults++;
+            faults++;// fault happened
         } else {
-            for (int a = pageAddedCount; a > 0; a--) {
+            for (int a = 0; a < pageAddedCount; a++) {
                 if (pageAccessed[a] == pageNumber) {
                     RAMIndex = a;
                     break;
                 }
             }
-
-            for (int b = 0; b < RAMIndex; b++) {
+            for (int b = RAMIndex; b > 0; b--) {// move pages to right until the current page
                 pageAccessed[b] = pageAccessed[b - 1];
             }
-
-            pageAccessed[0] = pageNumber;
+            pageAccessed[0] = pageNumber;// current page becomes most recent
         }
-        fprintf(LRUStream, "%d\n", pageTable[pageNumber] + pageOffset);
+        fprintf(LRUStream, "%d\n", pageTable[pageNumber]*pageLength + pageOffset);
     }
     fclose(LRUStream);
     return faults;
